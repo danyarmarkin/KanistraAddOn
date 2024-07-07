@@ -28,7 +28,7 @@ import bpy
 
 @addon_updater_ops.make_annotations
 class AddOnPreferences(bpy.types.AddonPreferences):
-    bl_idname = "kanistra_add_on.preferences"
+    bl_idname = __name__
 
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
