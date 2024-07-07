@@ -72,7 +72,7 @@ except Exception as e:
 # not match and have errors. Must be all lowercase and no spaces! Should also
 # be unique among any other addons that could exist (using this updater code),
 # to avoid clashes in operator registration.
-updater.addon = "KanistraAddOn"
+updater.addon = "kanistra_add_on"
 
 
 # -----------------------------------------------------------------------------
@@ -1277,7 +1277,7 @@ def register(bl_info):
 
     # Choose your own repository, must match git name for GitHUb and Bitbucket,
     # for GitLab use project ID (numbers only).
-    updater.repo = "polyhavenassets"
+    updater.repo = "KanistraAddOn"
 
     # updater.addon = # define at top of module, MUST be done first
 

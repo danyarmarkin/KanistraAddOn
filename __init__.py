@@ -26,7 +26,52 @@ else:
 
 import bpy
 
+@addon_updater_ops.make_annotations
+class AddOnPreferences(bpy.types.AddonPreferences):
+    bl_idname = __package__
+
+    auto_check_update = bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=True,
+    )
+
+    updater_intrval_months = bpy.props.IntProperty(
+        name='Months',
+        description="Number of months between checking for updates",
+        default=0,
+        min=0
+    )
+    updater_intrval_days = bpy.props.IntProperty(
+        name='Days',
+        description="Number of days between checking for updates",
+        default=7,
+        min=0,
+    )
+    updater_intrval_hours = bpy.props.IntProperty(
+        name='Hours',
+        description="Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23
+    )
+    updater_intrval_minutes = bpy.props.IntProperty(
+        name='Minutes',
+        description="Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        mainrow = layout.row()
+        col = mainrow.column()
+        addon_updater_ops.update_settings_ui(self, context)
+
+
 classes = [
+    AddOnPreferences,
     download_operator.DownloadAssetsOperator,
     asset_browser_panel.AssetBrowserPanel,
     open_kanistra_assets_operator.OpenKanistraAssetsOperator
@@ -37,6 +82,7 @@ classes = [
 def register():
     logger.prepare()
     logger.log("register")
+    addon_updater_ops.register(bl_info)
     thumbnails.thumbnails_register()
     # bpy.context.report({"INFO"}, thumbnails.get_thumbnails())
     for c in classes:
@@ -52,6 +98,7 @@ def unregister():
         bpy.utils.unregister_class(c)
 
     thumbnails.thumbnails_unregister()
+    addon_updater_ops.unregister()
 
 
 if __name__ == "__main__":
