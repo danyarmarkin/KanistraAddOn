@@ -1251,11 +1251,13 @@ classes = (
     AddonUpdaterEndBackground,
 )
 
+import logger
 
 def register(bl_info):
     """Registering the operators in this module"""
     # Safer failure in case of issue loading module.
     if updater.error:
+        logger.log("Exiting updater registration, " + updater.error)
         print("Exiting updater registration, " + updater.error)
         return
     updater.clear_state()  # Clear internal vars, avoids reloading oddities.
