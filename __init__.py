@@ -2,9 +2,10 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "",
     "author": "Kanistra Studio",
-    "version": (0, 0, 2),
+    "version": (0, 0, 3),
     "blender": (4, 0, 0),
     "category": "Import-Export",
+    "doc_url": "https://kanistra.com",
 }
 
 
