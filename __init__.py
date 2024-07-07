@@ -28,7 +28,7 @@ import bpy
 
 @addon_updater_ops.make_annotations
 class AddOnPreferences(bpy.types.AddonPreferences):
-    bl_idname = __package__
+    bl_idname = "kanistra_add_on.preferences"
 
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
@@ -84,7 +84,6 @@ def register():
     logger.log("register")
     addon_updater_ops.register(bl_info)
     thumbnails.thumbnails_register()
-    # bpy.context.report({"INFO"}, thumbnails.get_thumbnails())
     for c in classes:
         bpy.utils.register_class(c)
     bpy.types.ASSETBROWSER_MT_editor_menus.append(open_kanistra_assets_operator.draw_operator)
