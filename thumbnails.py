@@ -1,4 +1,5 @@
 import bpy
+import bpy.utils.previews
 import os
 from . import logger
 
