@@ -19,7 +19,7 @@ def abspath(p):
 
 class DownloadKanistraAssetsOperator(bpy.types.Operator):
     bl_idname = "kanistra.download_kanistra_assets"
-    bl_label = "Download Kanistra Assets"
+    bl_label = "Download All Kanistra Assets"
     bl_description = "Download Kanistra Assets"
 
     def execute(self, context):
