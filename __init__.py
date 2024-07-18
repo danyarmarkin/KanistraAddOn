@@ -2,7 +2,7 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "",
     "author": "Kanistra Studio",
-    "version": (0, 0, 3),
+    "version": (0, 1, 0),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
@@ -16,6 +16,7 @@ if "bpy" not in locals():
     from . import thumbnails
     from . import logger
     from . import addon_updater_ops
+    from . import download_assets_operator
 else:
     from importlib import reload
     reload(asset_browser_panel)
@@ -24,6 +25,7 @@ else:
     reload(thumbnails)
     reload(logger)
     reload(addon_updater_ops)
+    reload(download_assets_operator)
 
 import bpy
 
@@ -72,7 +74,8 @@ classes = [
     AddOnPreferences,
     download_operator.DownloadAssetsOperator,
     asset_browser_panel.AssetBrowserPanel,
-    open_kanistra_assets_operator.OpenKanistraAssetsOperator
+    open_kanistra_assets_operator.OpenKanistraAssetsOperator,
+    download_assets_operator.DownloadKanistraAssetsOperator
 ]
 
 
@@ -85,11 +88,13 @@ def register():
     for c in classes:
         bpy.utils.register_class(c)
     bpy.types.ASSETBROWSER_MT_editor_menus.append(open_kanistra_assets_operator.draw_operator)
+    bpy.types.ASSETBROWSER_MT_editor_menus.append(download_assets_operator.draw_operator)
 
 
 def unregister():
     logger.log("unregister called")
     bpy.types.ASSETBROWSER_MT_editor_menus.remove(open_kanistra_assets_operator.draw_operator)
+    bpy.types.ASSETBROWSER_MT_editor_menus.remove(download_assets_operator.draw_operator)
 
     for c in reversed(classes):
         bpy.utils.unregister_class(c)
