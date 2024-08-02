@@ -2,6 +2,7 @@ import bpy
 from . import thumbnails
 from . import logger
 
+
 class AssetBrowserPanel(bpy.types.Panel):
     bl_label = "Download Original"
     bl_idname = "kanistra.asset_browser_panel"
@@ -21,8 +22,7 @@ class AssetBrowserPanel(bpy.types.Panel):
         row = layout.row()
         try:
             row.operator("kanistra.download_asset",
-                         icon_value=thumbnails.get_thumbnails()["download-icon"].icon_id
-                         )
+                         icon_value=thumbnails.get_thumbnails()["download-icon"].icon_id)
         except Exception:
             row.operator("kanistra.download_asset")
 
