@@ -18,6 +18,7 @@ if "bpy" not in locals():
     from . import download_assets_operator
     from . import statusbar
     from . import check_updates_operator
+    from . import links_operators
 else:
     from importlib import reload
     reload(asset_browser_panel)
@@ -29,6 +30,7 @@ else:
     reload(download_assets_operator)
     reload(statusbar)
     reload(check_updates_operator)
+    reload(links_operators)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -94,7 +96,8 @@ classes = [
     download_assets_operator.DownloadKanistraAssetsOperator,
     download_assets_operator.CancelDownloadingOperator,
     statusbar.UpdateAnimOperator,
-    check_updates_operator.CheckUpdatesOperator
+    check_updates_operator.CheckUpdatesOperator,
+    links_operators.KanistraLinksPanel
 ]
 
 
