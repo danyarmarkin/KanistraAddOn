@@ -2,7 +2,7 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "Access to Kanistra Studio models library",
     "author": "Kanistra Studio",
-    "version": (0, 1, 3),
+    "version": (0, 2, 1),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
@@ -19,6 +19,8 @@ if "bpy" not in locals():
     from . import statusbar
     from . import check_updates_operator
     from . import links_operators
+    from . import download_history_panel
+    from . import search_tag_operator
 else:
     from importlib import reload
     reload(asset_browser_panel)
@@ -31,6 +33,8 @@ else:
     reload(statusbar)
     reload(check_updates_operator)
     reload(links_operators)
+    reload(download_history_panel)
+    reload(search_tag_operator)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -85,19 +89,22 @@ class KanistraProperties(bpy.types.PropertyGroup):
     download_status: bpy.props.StringProperty(default='NONE', options={"HIDDEN"})
     updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
+    show_more_history: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
 
 
 classes = [
     AddOnPreferences,
     KanistraProperties,
     download_operator.DownloadAssetsOperator,
-    asset_browser_panel.AssetBrowserPanel,
+    # asset_browser_panel.AssetBrowserPanel,
     open_kanistra_assets_operator.OpenKanistraAssetsOperator,
     download_assets_operator.DownloadKanistraAssetsOperator,
     download_assets_operator.CancelDownloadingOperator,
     statusbar.UpdateAnimOperator,
     check_updates_operator.CheckUpdatesOperator,
-    links_operators.KanistraLinksPanel
+    links_operators.KanistraLinksPanel,
+    search_tag_operator.SearchTagOperator,
+    download_history_panel.DownloadHistoryPanel
 ]
 
 

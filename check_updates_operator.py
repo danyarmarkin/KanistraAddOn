@@ -2,14 +2,15 @@ import hashlib
 
 import bpy
 import threading
-from . import download_assets_operator
 import requests
 import os
-from . import filehash
+from . import filehash, version_control, download_assets_operator
 import time
 
 
 def check_updates(self, context):
+    time.sleep(10)
+
     list_r = requests.get(f"{download_assets_operator.SERVER}/blendfiles/")
     if list_r.status_code != 200:
         return
@@ -18,16 +19,13 @@ def check_updates(self, context):
     for file in list_r.json():
         files[file['hash']] = file['size']
 
-    asset_lib = download_assets_operator.get_asset_lib(context)
-    for file in os.listdir(asset_lib.path):
-        file_path = os.path.join(asset_lib.path, file)
-        h = filehash.filehash(file_path)
+    local_data = version_control.load_versions_data(context)
+    for h in local_data['files'].values():
         if h in files.keys():
             del files[h]
 
     self.updates = len(files)
     self.updates_size = sum(files.values())
-    time.sleep(10)
 
 
 def run_check(self, context):

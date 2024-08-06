@@ -1,15 +1,13 @@
-import hashlib
+import datetime
+import subprocess
 
 import bpy
-from . import thumbnails, statusbar
+from . import thumbnails, statusbar, filehash, version_control
 from pathlib import Path
-import shutil
 import requests
 import os
-import pathlib
 import threading
 import time
-from . import filehash
 
 SERVER = "http://95.164.68.38"
 
@@ -59,9 +57,9 @@ def download_assets(self, context, asset_lib):
         size = file['size']
         files[name] = (h, pk, size)
 
-    for file in os.listdir(asset_lib.path):
+    local_data = version_control.load_versions_data(context)
+    for file, h in local_data['files'].items():
         file_path = os.path.join(asset_lib.path, file)
-        h = filehash.filehash(file_path)
         if file not in files.keys():
             os.remove(file_path)
             continue
@@ -78,7 +76,22 @@ def download_assets(self, context, asset_lib):
             f"Library is up to date"
         )
 
-    for file, (_, pk, _) in files.items():
+    # Create tag
+    current_time = datetime.datetime.now()
+
+    def formated(n, c=2):
+        return "0" * max(0, c - len(str(n))) + str(n)
+
+    tag = (f"Downloaded_at_"
+           f"{formated(current_time.year, 4)}-"
+           f"{formated(current_time.month)}-"
+           f"{formated(current_time.day)}_"
+           f"{formated(current_time.hour)}:"
+           f"{formated(current_time.minute)}:"
+           f"{formated(current_time.second)}")
+    local_data["version_tags"].append(tag)
+
+    for file, (h, pk, _) in files.items():
         file_r = requests.get(f"{SERVER}/download/{pk}/", stream=True)
         file_path = os.path.join(asset_lib.path, file)
         self.filename = file
@@ -90,15 +103,31 @@ def download_assets(self, context, asset_lib):
             )
             return
 
-        f = open(file_path, 'wb')
-        for data in file_r.iter_content(block_size):
-            if downloading_status(context) != 'DOWNLOADING':
-                f.close()
-                os.remove(f.name)
-                return
-            self.downloaded_size += len(data)
-            f.write(data)
-            # time.sleep(0.001)
+        with open(file_path, 'wb') as f:
+            for data in file_r.iter_content(block_size):
+                if downloading_status(context) != 'DOWNLOADING':
+                    f.close()
+                    os.remove(f.name)
+                    version_control.save_versions_data(context, data)
+                    return
+                self.downloaded_size += len(data)
+                f.write(data)
+
+        local_data['files'][file] = h
+        mark_file_with_tag(context, file_path, tag)
+
+    version_control.save_versions_data(context, local_data)
+
+
+def mark_file_with_tag(context, file, tag):
+    script_path = Path(__file__).parents[0] / "blend_markfile.py"
+    subprocess.call([
+            bpy.app.binary_path, "--background",
+            file, "--factory-startup",
+            "--python", script_path,
+            "--", file, tag
+        ]
+    )
 
 
 class DownloadKanistraAssetsOperator(bpy.types.Operator):
@@ -190,4 +219,3 @@ def draw_operator(self, context):
         layout.label(text='Updating...')
     else:
         layout.label(text='Library is up to date')
-
