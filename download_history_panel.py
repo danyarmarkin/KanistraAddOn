@@ -25,6 +25,10 @@ class DownloadHistoryPanel(bpy.types.Panel):
             text="History:",
             icon_value=thumbnails.get_thumbnails()["recently"].icon_id
         )
+
+        if context.space_data.params.filter_search:
+            row.operator("kanistra.search_tag_operator", text="Clear Search", icon="PANEL_CLOSE").tag = ""
+
         data = version_control.load_versions_data(context)["version_tags"]
         tags = list(reversed(data))[:10] if (len(data) > 10 and not
                                              context.window_manager.kanistra_props.show_more_history)\
