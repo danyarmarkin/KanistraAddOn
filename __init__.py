@@ -21,6 +21,7 @@ if "bpy" not in locals():
     from . import links_operators
     from . import download_history_panel
     from . import search_tag_operator
+    from . import login
 else:
     from importlib import reload
     reload(asset_browser_panel)
@@ -35,6 +36,7 @@ else:
     reload(links_operators)
     reload(download_history_panel)
     reload(search_tag_operator)
+    reload(login)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -91,6 +93,14 @@ class KanistraProperties(bpy.types.PropertyGroup):
     updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     show_more_history: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
 
+    # log in / log up
+    login: bpy.props.StringProperty(name='Email', options={"HIDDEN"})
+    password: bpy.props.StringProperty(name='Password', options={"HIDDEN"}, subtype="PASSWORD")
+    password_again: bpy.props.StringProperty(name='Password again', options={"HIDDEN"}, subtype="PASSWORD")
+    license_agreement: bpy.props.BoolProperty(name='I agree with addon policy', default=False, options={"HIDDEN"})
+    email_sends_agreement: bpy.props.BoolProperty(name='I agree with email notification', default=False, options={"HIDDEN"})
+    login_or_logup: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+
 
 classes = [
     AddOnPreferences,
@@ -104,7 +114,9 @@ classes = [
     check_updates_operator.CheckUpdatesOperator,
     links_operators.KanistraLinksPanel,
     search_tag_operator.SearchTagOperator,
-    download_history_panel.DownloadHistoryPanel
+    login.LoginOperator,
+    login.LoginPanel,
+    download_history_panel.DownloadHistoryPanel,
 ]
 
 
