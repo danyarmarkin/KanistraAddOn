@@ -6,7 +6,7 @@ argv = argv[argv.index("--") + 1:]
 
 filepath, tag = argv
 
-for obj in bpy.data.objects:
+for obj in list(bpy.data.objects) + list(bpy.data.collections) + list(bpy.data.materials):
     if not obj.asset_data:
         continue
     obj.asset_data.tags.new(tag, skip_if_exists=True)
