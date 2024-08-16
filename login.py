@@ -1,5 +1,5 @@
 import bpy
-from . import thumbnails
+from . import thumbnails, auth
 
 
 class LoginOperator(bpy.types.Operator):
@@ -7,7 +7,14 @@ class LoginOperator(bpy.types.Operator):
     bl_idname = "kanistra.login_operator"
 
     def execute(self, context):
-        self.report({"INFO"}, "Log in!")
+        props = context.window_manager.kanistra_props
+        if not props.login_or_logup:
+            status, text = auth.authenticate(context)
+        elif props.need_activation:
+            status, text = auth.activate_account(context)
+        else:
+            status, text = auth.log_up(context)
+        self.report({status}, text)
         return {"FINISHED"}
 
 
@@ -20,47 +27,46 @@ class LoginPanel(bpy.types.Panel):
 
     @classmethod
     def poll(self, context):
+        props = context.window_manager.kanistra_props
         lib_ref = getattr(context.space_data.params, "asset_library_ref", None)
         lib_ref = getattr(context.space_data.params, "asset_library_reference", lib_ref)
-        return context.area.ui_type == "ASSETS" and lib_ref.lower() == "kanistra assets"
+        return context.area.ui_type == "ASSETS" and lib_ref.lower() in ["kanistra assets", "kanistra admin"] and not props.authenticated
 
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-
+        props = context.window_manager.kanistra_props
         col.prop(
-            context.window_manager.kanistra_props,
+            props,
             "login",
             icon_value=thumbnails.get_thumbnails()["user"].icon_id
         )
 
         col.prop(
-            context.window_manager.kanistra_props,
+            props,
             "password",
             icon_value=thumbnails.get_thumbnails()["key"].icon_id
         )
 
-        if context.window_manager.kanistra_props.login_or_logup:
+        if props.login_or_logup:
             col.prop(
-                context.window_manager.kanistra_props,
+                props,
                 "password_again",
                 icon_value=thumbnails.get_thumbnails()["key"].icon_id
             )
-            col.prop(
-                context.window_manager.kanistra_props,
-                "license_agreement"
-            )
-            col.prop(
-                context.window_manager.kanistra_props,
-                "email_sends_agreement"
-            )
+            col.prop(props, "license_agreement")
+            col.prop(props, "email_sends_agreement")
+
+        if props.need_activation:
+            col.prop(props, "register_code")
 
         col.operator("kanistra.login_operator",
-                     text="Log up!" if context.window_manager.kanistra_props.login_or_logup else "Log in!")
+                     text=("Verify" if props.need_activation else "Log up!") if props.login_or_logup else "Log in!")
 
-        col.prop(
-            context.window_manager.kanistra_props,
-            "login_or_logup",
-            text="Already have an account? Log in" if context.window_manager.kanistra_props.login_or_logup else "Don't have an account? Log up",
-            emboss=False
-        )
+        if not props.need_activation:
+            col.prop(
+                props,
+                "login_or_logup",
+                text="Already have an account? Log in" if props.login_or_logup else "Don't have an account? Log up",
+                emboss=False
+            )

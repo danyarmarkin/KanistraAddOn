@@ -20,5 +20,5 @@ class KanistraLinksPanel(bpy.types.Panel):
         layout = self.layout
         row = layout.row()
         row.operator(
-            "wm.url_open", text="Kanistra Studio", icon_value=thumbnails.get_thumbnails()["discord-logo"].icon_id
-        ).url = "https://discord.gg/ZXt5jq2fyU"
+            "wm.url_open", text="Join our Discord", icon_value=thumbnails.get_thumbnails()["discord-logo"].icon_id
+        ).url = "https://discord.gg/XDFgEyQbTt"

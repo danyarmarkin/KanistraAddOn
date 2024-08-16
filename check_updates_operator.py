@@ -4,14 +4,16 @@ import bpy
 import threading
 import requests
 import os
-from . import filehash, version_control, download_assets_operator
+from . import filehash, version_control, download_assets_operator, auth, admin, server_config
 import time
 
 
 def check_updates(self, context):
     time.sleep(10)
 
-    list_r = requests.get(f"{download_assets_operator.SERVER}/blendfiles/")
+    auth.check_admin(context)
+
+    list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
     if list_r.status_code != 200:
         return
     files = dict()
@@ -26,6 +28,26 @@ def check_updates(self, context):
 
     self.updates = len(files)
     self.updates_size = sum(files.values())
+
+    props = context.window_manager.kanistra_props
+    if props.admin:
+        list_r = auth.get(context, f"{server_config.SERVER}/admin-files/files/")
+        if list_r.status_code != 200:
+            return
+        files = dict()
+
+        for file in list_r.json():
+            files[file['hash']] = file['size']
+
+        path = admin.get_lib_path(context)
+        for root, dirs, fls in os.walk(path):
+            for file in fls:
+                filepath = os.path.join(root, file)
+                h = filehash.filehash(filepath)
+                if h in files.keys():
+                    del files[h]
+        self.admin_updates = len(files)
+        self.admin_updates_size = sum(files.values())
 
 
 def run_check(self, context):
@@ -45,6 +67,9 @@ class CheckUpdatesOperator(bpy.types.Operator):
     updates = 0
     updates_size = 0
 
+    admin_updates = 0
+    admin_updates_size = 0
+
     check_thread: threading.Thread = None
 
     def modal(self, context, event):
@@ -52,10 +77,13 @@ class CheckUpdatesOperator(bpy.types.Operator):
             if download_assets_operator.downloading_status(context) != 'NONE':
                 self.updates = 0
                 self.updates_size = 0
+                self.admin_updates = 0
+                self.admin_updates_size = 0
                 return {'PASS_THROUGH'}
             if not self.check_thread.is_alive():
                 self.check_thread.join()
                 download_assets_operator.set_updates(context, self.updates, self.updates_size)
+                admin.set_updates(context, self.admin_updates, self.admin_updates_size)
                 run_check(self, context)
         return {'PASS_THROUGH'}
 
@@ -76,6 +104,8 @@ class CheckUpdatesOperator(bpy.types.Operator):
 
 
 from bpy.app.handlers import persistent
+
+
 @persistent
 def load_check_handler(dummy):
     bpy.ops.kanistra.check_updates_operator()

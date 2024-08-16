@@ -2,14 +2,13 @@ import datetime
 import subprocess
 
 import bpy
-from . import thumbnails, statusbar, filehash, version_control
+from . import thumbnails, statusbar, filehash, version_control, server_config
 from pathlib import Path
 import requests
 import os
 import threading
 import time
 
-SERVER = "http://95.164.68.38"
 
 
 def get_asset_lib(context):
@@ -38,10 +37,8 @@ def downloading_status(context, status=None):
     props.download_status = status
 
 
-def download_assets(self, context, asset_lib):
-    # shutil.rmtree(asset_lib.path)
-    # os.makedirs(asset_lib.path)
-    list_r = requests.get(f"{SERVER}/blendfiles/")
+def download_assets(self, context, asset_lib, vc=True):
+    list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
     if list_r.status_code != 200:
         self.report(
             {"ERROR"},
@@ -92,7 +89,7 @@ def download_assets(self, context, asset_lib):
     local_data["version_tags"].append(tag)
 
     for file, (h, pk, _) in files.items():
-        file_r = requests.get(f"{SERVER}/download/{pk}/", stream=True)
+        file_r = requests.get(f"{server_config.SERVER}/download/{pk}/", stream=True)
         file_path = os.path.join(asset_lib.path, file)
         self.filename = file
 
@@ -108,15 +105,17 @@ def download_assets(self, context, asset_lib):
                 if downloading_status(context) != 'DOWNLOADING':
                     f.close()
                     os.remove(f.name)
-                    version_control.save_versions_data(context, data)
+                    if vc:
+                        version_control.save_versions_data(context, data)
                     return
                 self.downloaded_size += len(data)
                 f.write(data)
 
         local_data['files'][file] = h
-        mark_file_with_tag(context, file_path, tag)
-
-    version_control.save_versions_data(context, local_data)
+        if vc:
+            mark_file_with_tag(context, file_path, tag)
+    if vc:
+        version_control.save_versions_data(context, local_data)
 
 
 def mark_file_with_tag(context, file, tag):

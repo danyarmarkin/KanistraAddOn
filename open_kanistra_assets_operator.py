@@ -14,9 +14,6 @@ class OpenKanistraAssetsOperator(bpy.types.Operator):
 
 def draw_operator(self, context):
     lib_ref = context.space_data.params.asset_library_reference
-    if lib_ref.lower() == "Kanistra Assets".lower():
-        return
-    if lib_ref.lower() != "All".lower():
-        return
-    layout = self.layout
-    layout.operator("kanistra.open_kanistra_assets", icon_value=thumbnails.get_thumbnails()["kanistra"].icon_id)
+    if lib_ref.lower() in ["all", "kanistra admin"]:
+        layout = self.layout
+        layout.operator("kanistra.open_kanistra_assets", icon_value=thumbnails.get_thumbnails()["kanistra"].icon_id)
