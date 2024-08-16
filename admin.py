@@ -90,9 +90,10 @@ def push_assets(self, context):
         else:
             auth.delete(context, f"{server_config.SERVER}/admin-files/files/{file['id']}")
     for _, (filepath, name) in files.items():
-        files = {'file': open(filepath, "rb")}
-        data = {'name': name}
-        auth.post(context, f"{server_config.SERVER}/admin-files/files/", files=files, data=data)
+        with open(filepath, "rb") as f:
+            files = {'file': f}
+            data = {'name': name}
+            auth.post(context, f"{server_config.SERVER}/admin-files/files/", files=files, data=data)
 
 
 def publish_assets(self, context):
@@ -106,9 +107,10 @@ def publish_assets(self, context):
         for file in fls:
             filepath = os.path.join(root, file)
             name = os.path.relpath(filepath, path).replace(os.path.sep, "_")
-            files = {'file': open(filepath, "rb")}
-            data = {'name': name, "is_free": False}
-            auth.post(context, f"{server_config.SERVER}/blendfiles/", files=files, data=data)
+            with open(filepath, "rb") as f:
+                files = {'file': f}
+                data = {'name': name, "is_free": False}
+                auth.post(context, f"{server_config.SERVER}/blendfiles/", files=files, data=data)
 
     for pk in server_pks:
         auth.delete(context, f"{server_config.SERVER}/blendfiles/{pk}")
