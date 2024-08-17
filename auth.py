@@ -138,10 +138,13 @@ def get_authorization_header(context):
 
 
 def request(method, context, retry, *args, **kwargs):
-    if "headers" not in kwargs:
+    if "headers" not in kwargs.keys():
         kwargs['headers'] = {}
     kwargs['headers']['Authorization'] = get_authorization_header(context)
     r = method(*args, **kwargs)
+    if "files" in kwargs.keys():
+        for key in kwargs["files"].keys():
+            kwargs["files"][key].seek(0)
     if r.status_code == 401:
         if not retry and refresh(context):
             return request(method, context, True, *args, **kwargs)
