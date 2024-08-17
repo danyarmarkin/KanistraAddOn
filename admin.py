@@ -108,9 +108,13 @@ def publish_assets(self, context):
             filepath = os.path.join(root, file)
             name = os.path.relpath(filepath, path).replace(os.path.sep, "_")
             with open(filepath, "rb") as f:
+                file_content = f.read()
+                self.report({"INFO"}, f"[{file}] File size: {len(file_content)} bytes")
+                f.seek(0)
                 files = {'file': f}
                 data = {'name': name, "is_free": False}
-                auth.post(context, f"{server_config.SERVER}/blendfiles/", files=files, data=data)
+                r = auth.post(context, f"{server_config.SERVER}/blendfiles/", files=files, data=data)
+                self.report({"INFO"}, f"[{file}] {r.status_code}: {r.text}")
 
     for pk in server_pks:
         auth.delete(context, f"{server_config.SERVER}/blendfiles/{pk}")
