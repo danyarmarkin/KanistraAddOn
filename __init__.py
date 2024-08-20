@@ -2,7 +2,7 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "Access to Kanistra Studio models library",
     "author": "Kanistra Studio",
-    "version": (0, 3, 3),
+    "version": (0, 3, 4),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
@@ -25,6 +25,7 @@ if "bpy" not in locals():
     from . import auth
     from . import account
     from . import admin
+    from . import timer
 else:
     from importlib import reload
     reload(asset_browser_panel)
@@ -43,6 +44,7 @@ else:
     reload(auth)
     reload(account)
     reload(admin)
+    reload(timer)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -162,12 +164,16 @@ def register():
     bpy.app.handlers.load_post.append(check_updates_operator.load_check_handler)
     bpy.app.handlers.load_post.append(auth.load_auth_handler)
 
+    timer.register_timers()
+
     # bpy.app.timers.register(update_download_anim_index)
 
 
 def unregister():
     addon_updater_ops.unregister()
     logger.log("unregister called")
+
+    timer.unregister_timers()
 
     bpy.app.handlers.load_post.remove(check_updates_operator.load_check_handler)
     bpy.app.handlers.load_post.append(auth.load_auth_handler)

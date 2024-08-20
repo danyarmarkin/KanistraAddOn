@@ -26,6 +26,7 @@ import traceback
 
 import bpy
 from bpy.app.handlers import persistent
+from . import thumbnails
 
 # Safely import the updater.
 # Prevents popups for users with invalid python installs e.g. missing libraries
@@ -128,7 +129,8 @@ def get_user_preferences(context=None):
 class AddonUpdaterInstallPopup(bpy.types.Operator):
     """Check and install update if available"""
 
-    bl_label = "Update {x} addon".format(x=updater.addon)
+    # bl_label = "Update {x} addon".format(x=updater.addon)
+    bl_label = "Update for \"Kanistra Assets\" addon is ready!"
     bl_idname = updater.addon + ".updater_install_popup"
     bl_description = "Popup to check and display current updates available"
     bl_options = {"REGISTER", "INTERNAL"}
@@ -150,7 +152,7 @@ class AddonUpdaterInstallPopup(bpy.types.Operator):
         description="Decide to install, ignore, or defer new addon update",
         items=[
             ("install", "Update Now", "Install update now"),
-            ("ignore", "Ignore", "Ignore this update to prevent future popups"),
+            # ("ignore", "Ignore", "Ignore this update to prevent future popups"),
             ("defer", "Defer", "Defer choice till next blender session"),
         ],
         options={"HIDDEN"},
@@ -170,7 +172,8 @@ class AddonUpdaterInstallPopup(bpy.types.Operator):
         elif updater.update_ready:
             col = layout.column()
             col.scale_y = 0.7
-            col.label(text="Update {} ready!".format(updater.update_version), icon="LOOP_FORWARDS")
+            col.label(text="Update {} ready!".format(updater.update_version),
+                      icon_value=thumbnails.get_thumbnails()["kanistra"].icon_id)
             col.label(text="Choose 'Update Now' & press OK to install, ", icon="BLANK1")
             col.label(text="or click outside window to defer", icon="BLANK1")
             row = col.row()
@@ -549,6 +552,9 @@ class AddonUpdaterIgnore(bpy.types.Operator):
     bl_description = "Ignore update to prevent future popups"
     bl_options = {"REGISTER", "INTERNAL"}
 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
     @classmethod
     def poll(cls, context):
         if updater.invalid_updater:
@@ -871,7 +877,7 @@ def update_notice_box_ui(self, context):
     split = row.split(align=True)
     colL = split.column(align=True)
     colL.scale_y = 1.5
-    colL.operator(AddonUpdaterIgnore.bl_idname, icon="X", text="Ignore")
+    # colL.operator(AddonUpdaterIgnore.bl_idname, icon="X", text="Ignore")
     colR = split.column(align=True)
     colR.scale_y = 1.5
     if not updater.manual_only:
@@ -1363,13 +1369,13 @@ def register(bl_info):
     # but the user has the option from user preferences to directly
     # update to the master branch or any other branches specified using
     # the "install {branch}/older version" operator.
-    updater.include_branches = True
+    updater.include_branches = False
 
     # (GitHub only) This options allows using "releases" instead of "tags",
     # which enables pulling down release logs/notes, as well as installs update
     # from release-attached zips (instead of the auto-packaged code generated
     # with a release/tag). Setting has no impact on BitBucket or GitLab repos.
-    updater.use_releases = False
+    updater.use_releases = True
     # Note: Releases always have a tag, but a tag may not always be a release.
     # Therefore, setting True above will filter out any non-annotated tags.
     # Note 2: Using this option will also display (and filter by) the release
