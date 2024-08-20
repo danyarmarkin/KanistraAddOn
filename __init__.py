@@ -2,7 +2,7 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "Access to Kanistra Studio models library",
     "author": "Kanistra Studio",
-    "version": (0, 3, 4),
+    "version": (0, 3, 5),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
