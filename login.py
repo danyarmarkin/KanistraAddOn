@@ -30,7 +30,8 @@ class LoginPanel(bpy.types.Panel):
         props = context.window_manager.kanistra_props
         lib_ref = getattr(context.space_data.params, "asset_library_ref", None)
         lib_ref = getattr(context.space_data.params, "asset_library_reference", lib_ref)
-        return context.area.ui_type == "ASSETS" and lib_ref.lower() in ["kanistra assets", "kanistra admin"] and not props.authenticated
+        return context.area.ui_type == "ASSETS" and lib_ref.lower() in ["kanistra assets",
+                                                                        "kanistra admin"] and not props.authenticated
 
     def draw(self, context):
         layout = self.layout
@@ -54,7 +55,11 @@ class LoginPanel(bpy.types.Panel):
                 "password_again",
                 icon_value=thumbnails.get_thumbnails()["key"].icon_id
             )
-            col.prop(props, "license_agreement")
+            rowLA = col.row()
+            rowLA.prop(props, "license_agreement")
+            rowLA.operator(
+                "wm.url_open", icon_value=thumbnails.get_thumbnails()["external"].icon_id
+            ).url = "https://kanistra.com/privacy"
             col.prop(props, "email_sends_agreement")
 
         if props.need_activation:
