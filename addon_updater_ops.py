@@ -946,9 +946,9 @@ def update_settings_ui(self, context, element=None):
     check_col = sub_row.column(align=True)
 
     # Consider un-commenting for local dev (e.g. to set shorter intervals)
-    # check_col.prop(settings,"updater_interval_hours")
-    # check_col = sub_row.column(align=True)
-    # check_col.prop(settings,"updater_interval_minutes")
+    check_col.prop(settings, "updater_interval_hours")
+    check_col = sub_row.column(align=True)
+    check_col.prop(settings, "updater_interval_minutes")
 
     # Checking / managing updates.
     row = box.row()

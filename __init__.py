@@ -69,7 +69,7 @@ class AddOnPreferences(bpy.types.AddonPreferences):
     updater_interval_days = bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
-        default=7,
+        default=0,
         min=0,
     )
     updater_interval_hours = bpy.props.IntProperty(
@@ -82,7 +82,7 @@ class AddOnPreferences(bpy.types.AddonPreferences):
     updater_interval_minutes = bpy.props.IntProperty(
         name='Minutes',
         description="Number of minutes between checking for updates",
-        default=0,
+        default=1,
         min=0,
         max=59
     )
