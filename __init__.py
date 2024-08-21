@@ -2,19 +2,19 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "Access to Kanistra Studio models library",
     "author": "Kanistra Studio",
-    "version": (0, 3, 4),
+    "version": (0, 3, 6),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
 }
 
 if "bpy" not in locals():
+    from . import addon_updater_ops
     from . import asset_browser_panel
     from . import download_operator
     from . import open_kanistra_assets_operator
     from . import thumbnails
     from . import logger
-    from . import addon_updater_ops
     from . import download_assets_operator
     from . import statusbar
     from . import check_updates_operator
@@ -28,12 +28,12 @@ if "bpy" not in locals():
     from . import timer
 else:
     from importlib import reload
+    reload(addon_updater_ops)
     reload(asset_browser_panel)
     reload(download_operator)
     reload(open_kanistra_assets_operator)
     reload(thumbnails)
     reload(logger)
-    reload(addon_updater_ops)
     reload(download_assets_operator)
     reload(statusbar)
     reload(check_updates_operator)
@@ -116,30 +116,31 @@ class KanistraProperties(bpy.types.PropertyGroup):
     admin: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     admin_updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     admin_updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
+    admin_users: bpy.props.StringProperty(default='[]', options={"HIDDEN"})
 
 
 classes = [
     AddOnPreferences,
     KanistraProperties,
     download_operator.DownloadAssetsOperator,
-    # asset_browser_panel.AssetBrowserPanel,
     open_kanistra_assets_operator.OpenKanistraAssetsOperator,
     download_assets_operator.DownloadKanistraAssetsOperator,
     download_assets_operator.CancelDownloadingOperator,
     statusbar.UpdateAnimOperator,
     check_updates_operator.CheckUpdatesOperator,
-    links_operators.KanistraLinksPanel,
     search_tag_operator.SearchTagOperator,
     login.LoginOperator,
     login.LoginPanel,
     download_history_panel.DownloadHistoryPanel,
+    links_operators.KanistraLinksPanel,
     account.DeleteAccountOperator,
     account.LogOutOperator,
+    admin.UsersCountPanel,
     account.AccountPanel,
     admin.OpenAdminOperator,
     admin.PublishAdminOperator,
     admin.PushAdminOperator,
-    admin.PullAdminOperator
+    admin.PullAdminOperator,
 ]
 
 
@@ -147,8 +148,8 @@ classes = [
 def register():
     logger.prepare()
     logger.log("register")
-    addon_updater_ops.register(bl_info)
     thumbnails.thumbnails_register()
+    addon_updater_ops.register(bl_info)
 
     for c in classes:
         bpy.utils.register_class(c)
@@ -161,8 +162,8 @@ def register():
 
     bpy.types.STATUSBAR_HT_header.prepend(statusbar.statusbar_ui)
 
-    bpy.app.handlers.load_post.append(check_updates_operator.load_check_handler)
     bpy.app.handlers.load_post.append(auth.load_auth_handler)
+    bpy.app.handlers.load_post.append(check_updates_operator.load_check_handler)
 
     timer.register_timers()
 
@@ -176,7 +177,7 @@ def unregister():
     timer.unregister_timers()
 
     bpy.app.handlers.load_post.remove(check_updates_operator.load_check_handler)
-    bpy.app.handlers.load_post.append(auth.load_auth_handler)
+    bpy.app.handlers.load_post.remove(auth.load_auth_handler)
 
     bpy.types.STATUSBAR_HT_header.remove(statusbar.statusbar_ui)
 

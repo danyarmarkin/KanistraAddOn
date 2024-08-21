@@ -33,6 +33,7 @@ class AccountPanel(bpy.types.Panel):
     bl_idname = "kanistra.account_panel"
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOLS"
+    bl_options = {"DEFAULT_CLOSED"}
 
     @classmethod
     def poll(self, context):

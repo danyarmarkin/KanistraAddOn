@@ -9,16 +9,29 @@ def on_startup_timer():
     return None
 
 
+def show_update_popup_timer():
+    addon_updater_ops.updater_run_install_popup_handler(None)
+    return None
+
+
+timers = [
+    (on_startup_timer, {"first_interval": 0}),
+    (show_update_popup_timer, {"first_interval": 3})
+]
+
+
 def register_timers():
     if bpy.app.background:
         return
 
-    bpy.app.timers.register(on_startup_timer)
+    for t, kw in timers:
+        bpy.app.timers.register(t, **kw)
 
 
 def unregister_timers():
     if bpy.app.background:
         return
 
-    if bpy.app.timers.is_registered(on_startup_timer):
-        bpy.app.timers.unregister(on_startup_timer)
+    for t, kw in timers:
+        if bpy.app.timers.is_registered(t):
+            bpy.app.timers.unregister(t)

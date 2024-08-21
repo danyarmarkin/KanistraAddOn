@@ -38,6 +38,7 @@ except Exception as e:
     print(str(e))
     traceback.print_exc()
 
+
     class SingletonUpdaterNone(object):
         """Fake, bare minimum fields and functions for the updater object."""
 
@@ -64,6 +65,7 @@ except Exception as e:
 
         def check_for_update(self, now):
             pass
+
 
     updater = SingletonUpdaterNone()
     updater.error = "Error initializing updater module"
@@ -149,7 +151,7 @@ class AddonUpdaterInstallPopup(bpy.types.Operator):
 
     ignore_enum = bpy.props.EnumProperty(
         name="Process update",
-        description="Decide to install, ignore, or defer new addon update",
+        description="Decide to install, or defer new addon update",
         items=[
             ("install", "Update Now", "Install update now"),
             # ("ignore", "Ignore", "Ignore this update to prevent future popups"),
@@ -641,7 +643,7 @@ def updater_run_install_popup_handler(scene):
     except:
         pass
 
-    if "ignore" in updater.json and updater.json["ignore"]:
+    if "ignore" in updater.json and updater.json["ignore"] or not updater.update_ready:
         return  # Don't do popup if ignore pressed.
     elif "version_text" in updater.json and updater.json["version_text"].get("version"):
         version = updater.json["version_text"]["version"]
@@ -837,7 +839,7 @@ def show_reload_popup():
 # -----------------------------------------------------------------------------
 # Example UI integrations
 # -----------------------------------------------------------------------------
-def update_notice_box_ui(self, context):
+def update_notice_box_ui(self, layout):
     """Update notice draw, to add to the end or beginning of a panel.
 
     After a check for update has occurred, this function will draw a box
@@ -851,7 +853,6 @@ def update_notice_box_ui(self, context):
     saved_state = updater.json
     if not updater.auto_reload_post_update:
         if "just_updated" in saved_state and saved_state["just_updated"]:
-            layout = self.layout
             box = layout.box()
             col = box.column()
             alert_row = col.row()
@@ -866,29 +867,16 @@ def update_notice_box_ui(self, context):
     if not updater.update_ready:
         return
 
-    layout = self.layout
     box = layout.box()
     col = box.column(align=True)
     col.alert = True
-    col.label(text="Update ready!", icon="ERROR")
+    col.label(text="Addon update ready!", icon="ERROR")
     col.alert = False
     col.separator()
-    row = col.row(align=True)
-    split = row.split(align=True)
-    colL = split.column(align=True)
-    colL.scale_y = 1.5
-    # colL.operator(AddonUpdaterIgnore.bl_idname, icon="X", text="Ignore")
-    colR = split.column(align=True)
-    colR.scale_y = 1.5
+    col.scale_y = 1.5
     if not updater.manual_only:
-        colR.operator(AddonUpdaterUpdateNow.bl_idname, text="Update", icon="LOOP_FORWARDS")
-        col.operator("wm.url_open", text="Open website").url = updater.website
-        # ops = col.operator("wm.url_open",text="Direct download")
-        # ops.url=updater.update_link
-        col.operator(AddonUpdaterInstallManually.bl_idname, text="Install manually")
+        col.operator(AddonUpdaterUpdateNow.bl_idname, text="Update", icon="LOOP_FORWARDS")
     else:
-        # ops = col.operator("wm.url_open", text="Direct download")
-        # ops.url=updater.update_link
         col.operator("wm.url_open", text="Get it now").url = updater.website
 
 
@@ -1042,7 +1030,7 @@ def update_settings_ui(self, context, element=None):
     if updater.error is not None and updater.error_msg is not None:
         row.label(text=updater.error_msg)
     elif last_check:
-        last_check = last_check[0 : last_check.index(".")]
+        last_check = last_check[0: last_check.index(".")]
         row.label(text="Last update check: " + last_check)
     else:
         row.label(text="Last update check: Never")
@@ -1153,7 +1141,7 @@ def update_settings_ui_condensed(self, context, element=None):
     if updater.error is not None and updater.error_msg is not None:
         row.label(text=updater.error_msg)
     elif last_check != "" and last_check is not None:
-        last_check = last_check[0 : last_check.index(".")]
+        last_check = last_check[0: last_check.index(".")]
         row.label(text="Last check: " + last_check)
     else:
         row.label(text="Last check: Never")
@@ -1304,7 +1292,7 @@ def register(bl_info):
 
     # Optional, consider turning off for production or allow as an option
     # This will print out additional debugging info to the console
-    updater.verbose = False  # make False for production default
+    updater.verbose = True  # make False for production default
 
     # Optional, customize where the addon updater processing subfolder is,
     # essentially a staging folder used by the updater on its own

@@ -3,6 +3,7 @@ import threading
 from pathlib import Path
 
 import bpy
+import json
 
 from . import auth, server_config, download_assets_operator, statusbar, filehash
 
@@ -224,3 +225,42 @@ def set_updates(context, u, us=0):
     for a in context.screen.areas:
         if a.type == "FILE_BROWSER":
             a.tag_redraw()
+
+
+class UsersCountPanel(bpy.types.Panel):
+    bl_idname = "kanistra.users_count_panel"
+    bl_label = "Addon users"
+    bl_space_type = "FILE_BROWSER"
+    bl_region_type = "TOOLS"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(self, context):
+        props = context.window_manager.kanistra_props
+        lib_ref = getattr(context.space_data.params, "asset_library_ref", None)
+        lib_ref = getattr(context.space_data.params, "asset_library_reference", lib_ref)
+        return context.area.ui_type == "ASSETS" and lib_ref.lower() in ["kanistra admin"] and props.admin
+
+    def draw(self, context):
+        layout = self.layout
+        props = context.window_manager.kanistra_props
+        col = layout.column()
+
+        users = json.loads(props.admin_users)
+
+        col.alert = True
+        col.label(text="Admins")
+        col.alert = False
+        col.separator()
+
+        for user in filter(lambda x: x["is_staff"], users):
+            col.label(text=user['email'])
+
+        col.separator()
+        col.alert = True
+        col.label(text="Users")
+        col.alert = False
+        col.separator()
+
+        for user in filter(lambda x: not x["is_staff"], users):
+            col.label(text=f"{user['email']} {'(not active)' if not user['is_active'] else ''}")

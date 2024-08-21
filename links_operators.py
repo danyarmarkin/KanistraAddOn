@@ -1,6 +1,6 @@
 import bpy
 
-from . import thumbnails
+from . import thumbnails, addon_updater_ops
 
 
 class KanistraLinksPanel(bpy.types.Panel):
@@ -18,7 +18,12 @@ class KanistraLinksPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.operator(
+        column = layout.column()
+
+        addon_updater_ops.update_notice_box_ui(self, column)
+
+        column.operator(
             "wm.url_open", text="Join our Discord", icon_value=thumbnails.get_thumbnails()["discord-logo"].icon_id
         ).url = "https://discord.gg/XDFgEyQbTt"
+
+

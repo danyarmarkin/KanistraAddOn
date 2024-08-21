@@ -61,12 +61,14 @@ class LoginPanel(bpy.types.Panel):
             col.prop(props, "register_code")
 
         col.operator("kanistra.login_operator",
-                     text=("Verify" if props.need_activation else "Log up!") if props.login_or_logup else "Log in!")
+                     text=("Verify" if props.need_activation else "Register!") if props.login_or_logup else "Log in!")
 
         if not props.need_activation:
             col.prop(
                 props,
                 "login_or_logup",
-                text="Already have an account? Log in" if props.login_or_logup else "Don't have an account? Log up",
+                text="Already have an account? click here to log in" if props.login_or_logup else
+                "Don't have an account? "
+                "Click here to register!",
                 emboss=False
             )

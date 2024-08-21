@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import bpy
 import threading
@@ -9,7 +10,11 @@ import time
 
 
 def check_updates(self, context):
-    time.sleep(10)
+    if self.is_first_update:
+        time.sleep(2)
+        self.is_first_update = False
+    else:
+        time.sleep(30)
 
     auth.check_admin(context)
 
@@ -49,6 +54,14 @@ def check_updates(self, context):
         self.admin_updates = len(files)
         self.admin_updates_size = sum(files.values())
 
+        list_r = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
+        if list_r.status_code == 200:
+            props.admin_users = str(json.dumps(list_r.json()))
+    else:
+        props.admin_users = '[]'
+        self.admin_updates = 0
+        self.admin_updates_size = 0
+
 
 def run_check(self, context):
     self.check_thread = threading.Thread(target=check_updates, args=(self, context))
@@ -69,6 +82,8 @@ class CheckUpdatesOperator(bpy.types.Operator):
 
     admin_updates = 0
     admin_updates_size = 0
+
+    is_first_update = True
 
     check_thread: threading.Thread = None
 
