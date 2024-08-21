@@ -248,19 +248,22 @@ class UsersCountPanel(bpy.types.Panel):
 
         users = json.loads(props.admin_users)
 
+        admin_users = list(filter(lambda x: x["is_staff"], users))
+        default_users = list(filter(lambda x: not x["is_staff"], users))
+
         col.alert = True
-        col.label(text="Admins")
+        col.label(text=f"Admins ({len(admin_users)})")
         col.alert = False
         col.separator()
 
-        for user in filter(lambda x: x["is_staff"], users):
+        for user in admin_users:
             col.label(text=user['email'])
 
         col.separator()
         col.alert = True
-        col.label(text="Users")
+        col.label(text=f"Users ({len(default_users)})")
         col.alert = False
         col.separator()
 
-        for user in filter(lambda x: not x["is_staff"], users):
+        for user in default_users:
             col.label(text=f"{user['email']} {'(not active)' if not user['is_active'] else ''}")
