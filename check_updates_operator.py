@@ -6,16 +6,9 @@ import threading
 import requests
 import os
 from . import filehash, version_control, download_assets_operator, auth, admin, server_config
-import time
 
 
 def check_updates(self, context):
-    if self.is_first_update:
-        time.sleep(2)
-        self.is_first_update = False
-    else:
-        time.sleep(30)
-
     auth.check_admin(context)
 
     list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
@@ -75,7 +68,7 @@ class CheckUpdatesOperator(bpy.types.Operator):
     updating = False
 
     _timer = None
-    _interval = 10
+    _interval = 3
 
     updates = 0
     updates_size = 0
@@ -94,19 +87,15 @@ class CheckUpdatesOperator(bpy.types.Operator):
                 self.updates_size = 0
                 self.admin_updates = 0
                 self.admin_updates_size = 0
-                return {'PASS_THROUGH'}
+                return {'FINISHED'}
             if not self.check_thread.is_alive():
                 self.check_thread.join()
                 download_assets_operator.set_updates(context, self.updates, self.updates_size)
                 admin.set_updates(context, self.admin_updates, self.admin_updates_size)
-                run_check(self, context)
-        return {'PASS_THROUGH'}
+                return {'FINISHED'}
+        return {"PASS_THROUGH"}
 
     def execute(self, context):
-        # if CheckUpdatesOperator.updating:
-        #     return {"FINISHED"}
-        #
-        # CheckUpdatesOperator.updating = True
         run_check(self, context)
         wm = context.window_manager
         self._timer = wm.event_timer_add(self._interval, window=context.window)
@@ -116,11 +105,3 @@ class CheckUpdatesOperator(bpy.types.Operator):
     def cancel(self, context):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
-
-
-from bpy.app.handlers import persistent
-
-
-@persistent
-def load_check_handler(dummy):
-    bpy.ops.kanistra.check_updates_operator()

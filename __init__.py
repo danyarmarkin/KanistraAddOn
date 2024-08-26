@@ -26,6 +26,7 @@ if "bpy" not in locals():
     from . import account
     from . import admin
     from . import timer
+    from . import handlers
 else:
     from importlib import reload
     reload(addon_updater_ops)
@@ -45,6 +46,7 @@ else:
     reload(account)
     reload(admin)
     reload(timer)
+    reload(handlers)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -163,9 +165,9 @@ def register():
     bpy.types.STATUSBAR_HT_header.prepend(statusbar.statusbar_ui)
 
     bpy.app.handlers.load_post.append(auth.load_auth_handler)
-    bpy.app.handlers.load_post.append(check_updates_operator.load_check_handler)
 
     timer.register_timers()
+    handlers.register_handlers()
 
     # bpy.app.timers.register(update_download_anim_index)
 
@@ -174,9 +176,9 @@ def unregister():
     addon_updater_ops.unregister()
     logger.log("unregister called")
 
+    handlers.unregister_handlers()
     timer.unregister_timers()
 
-    bpy.app.handlers.load_post.remove(check_updates_operator.load_check_handler)
     bpy.app.handlers.load_post.remove(auth.load_auth_handler)
 
     bpy.types.STATUSBAR_HT_header.remove(statusbar.statusbar_ui)

@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 import json
 
-from . import auth, server_config, download_assets_operator, statusbar, filehash
+from . import auth, server_config, download_assets_operator, statusbar, filehash, util, thumbnails
 
 
 def get_lib_path(context):
@@ -13,63 +13,6 @@ def get_lib_path(context):
         if lib.name.lower() == "kanistra admin":
             return lib.path
     return None
-
-
-def download_assets(self, context):
-    list_r = auth.get(context, f"{server_config.SERVER}/admin-files/files/")
-    if list_r.status_code != 200:
-        return
-    files = dict()
-
-    for file in list_r.json():
-        pk = file['id']
-        h = file['hash']
-        name = file['name']
-        size = file['size']
-        files[h] = (name, pk, size)
-
-    path = get_lib_path(context)
-    for root, _, fls in os.walk(path):
-        for file in fls:
-            filepath = os.path.join(root, file)
-            h = filehash.filehash(filepath)
-            if h in files.keys():
-                name = files[h][0]
-                if name == os.path.relpath(filepath, path).replace(os.path.sep, "/"):
-                    del files[h]
-                    continue
-            os.remove(filepath)
-
-    self.total_size = sum([i[2] for i in files.values()])
-
-    self.downloaded_size = 0
-    block_size = 1024 * 16  # 16 kB
-
-    for h, (name, pk, _) in files.items():
-        file_r = auth.get(context, f"{server_config.SERVER}/admin-files/download/{pk}/", stream=True)
-        file_path = Path(path)
-        for i in name.split("/"):
-            file_path /= i
-
-        if not os.path.exists(file_path.parents[0]):
-            os.makedirs(file_path.parents[0])
-        self.filename = file_path.name
-
-        if file_r.status_code != 200:
-            return
-
-        with open(file_path, 'wb') as f:
-            for data in file_r.iter_content(block_size):
-                if download_assets_operator.downloading_status(context) != 'DOWNLOADING':
-                    f.close()
-                    os.remove(f.name)
-                    return
-                self.downloaded_size += len(data)
-                f.write(data)
-
-    for root, dirs, fls in os.walk(path):
-        if len(dirs) + len(fls) == 0:
-            os.remove(root)
 
 
 def push_assets(self, context):
@@ -189,7 +132,11 @@ class PullAdminOperator(bpy.types.Operator):
         if download_assets_operator.downloading_status(context) != 'NONE':
             return {"FINISHED"}
 
-        self.downloading_thread = threading.Thread(target=download_assets, args=(self, context))
+        asset_lib = get_lib_path(context)
+        self.downloading_thread = threading.Thread(target=util.download_from_source,
+                                                   args=(self, context, f"{server_config.SERVER}/admin-files/files/",
+                                                         f"{server_config.SERVER}/admin-files/download/", asset_lib,
+                                                         "Pulled", True))
         self.downloading_thread.start()
         set_updates(context, 0)
 
@@ -214,9 +161,10 @@ def draw_operators(self, context):
         if props.admin_updates != 0:
             row.operator("kanistra.pull_admin_operator", text=f"Pull {props.admin_updates} "
                                                               f"updates ({props.admin_updates_size // 1024 // 1024}"
-                                                              f" Mb)")
-        row.operator("kanistra.push_admin_operator")
-        row.operator("kanistra.publish_admin_operator")
+                                                              f" Mb)",
+                         icon_value=thumbnails.get_thumbnails()["arrow-down"].icon_id)
+        row.operator("kanistra.push_admin_operator", icon_value=thumbnails.get_thumbnails()["arrow-up"].icon_id)
+        row.operator("kanistra.publish_admin_operator", icon_value=thumbnails.get_thumbnails()["arrow-up-right"].icon_id)
 
 
 def set_updates(context, u, us=0):
@@ -248,8 +196,8 @@ class UsersCountPanel(bpy.types.Panel):
 
         users = json.loads(props.admin_users)
 
-        admin_users = list(filter(lambda x: x["is_staff"], users))
-        default_users = list(filter(lambda x: not x["is_staff"], users))
+        admin_users = sorted(list(filter(lambda x: x["is_staff"], users)), key=lambda u: u['email'])
+        default_users = sorted(list(filter(lambda x: not x["is_staff"], users)), key=lambda u: u['email'])
 
         col.alert = True
         col.label(text=f"Admins ({len(admin_users)})")
