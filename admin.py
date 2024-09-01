@@ -372,7 +372,7 @@ class StatisticsPanel(bpy.types.Panel):
         column = layout.column()
 
         def format_datetime(datetime_str):
-            dt_obj = datetime.fromisoformat(datetime_str)
+            dt_obj = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
             return dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
         stats.sort(key=lambda x: x["tag"], reverse=True)
