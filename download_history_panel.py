@@ -1,3 +1,5 @@
+import json
+
 import bpy
 import pathlib
 from . import thumbnails, version_control
@@ -23,6 +25,8 @@ class DownloadHistoryPanel(bpy.types.Panel):
         lib_ref = getattr(context.space_data.params, "asset_library_ref", None)
         lib_ref = getattr(context.space_data.params, "asset_library_reference", lib_ref)
         admin = lib_ref.lower() == "kanistra admin" and props.admin
+        stats = json.loads(props.admin_statistics)
+        stats = {i['tag']: (i['auth_counter'], i['anon_counter'], i['last_download']) for i in stats}
 
         layout = self.layout
         box = layout.box()
@@ -79,6 +83,9 @@ class DownloadHistoryPanel(bpy.types.Panel):
                     icon_value=thumbnails.get_thumbnails()["arrow-down"].icon_id
                 )
             if comps[0].lower() == "published" and admin:
+                sts = stats.get(tag, None)
+                if sts:
+                    row.label(text=f"{sts[1]}+{sts[0]}")
                 row.label(
                     text="",
                     icon_value=thumbnails.get_thumbnails()["arrow-up-right"].icon_id

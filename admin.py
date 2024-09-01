@@ -306,3 +306,45 @@ class AdminIndexOperator(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
 
         return {"RUNNING_MODAL"}
+
+
+class MarkWithTagOperator(bpy.types.Operator):
+    bl_idname = "kanistra.mark_with_tag_operator"
+    bl_label = "Tag"
+
+    tag: bpy.props.StringProperty()
+
+    def execute(self, context):
+        selected_assets = context.selected_assets
+        paths = set()
+        for asset in selected_assets:
+            paths.add(asset.full_library_path)
+        for path in paths:
+            util.mark_file_with_tag(context, path, str(self.tag), "manage")
+        try:
+            bpy.ops.asset.library_refresh()
+        except RuntimeError:
+            pass
+        return {"FINISHED"}
+
+
+class TagsPanel(bpy.types.Panel):
+    bl_idname = "kanistra.tags_panel"
+    bl_label = "Manage tags"
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+
+    @classmethod
+    def poll(self, context):
+        lib_ref = context.space_data.params.asset_library_reference
+        props = context.window_manager.kanistra_props
+        return (lib_ref.lower() in ["kanistra admin"] and
+                props.admin and
+                context.selected_assets and
+                len(context.selected_assets) > 0)
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.operator("kanistra.mark_with_tag_operator", text="Free").tag = "free"
+        col.operator("kanistra.mark_with_tag_operator", text="Draft").tag = "draft"

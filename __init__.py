@@ -29,6 +29,7 @@ if "bpy" not in locals():
     from . import handlers
 else:
     from importlib import reload
+
     reload(addon_updater_ops)
     reload(asset_browser_panel)
     reload(download_operator)
@@ -100,6 +101,7 @@ class KanistraProperties(bpy.types.PropertyGroup):
     updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     show_more_history: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+    update_text: bpy.props.StringProperty(default='', options={"HIDDEN"})
 
     # log in / log up
     access_token: bpy.props.StringProperty(default='token', options={"HIDDEN"})
@@ -108,7 +110,8 @@ class KanistraProperties(bpy.types.PropertyGroup):
     password: bpy.props.StringProperty(name='Password', options={"HIDDEN"}, subtype="PASSWORD")
     password_again: bpy.props.StringProperty(name='Password again', options={"HIDDEN"}, subtype="PASSWORD")
     license_agreement: bpy.props.BoolProperty(name='I agree with addon policy', default=False, options={"HIDDEN"})
-    email_sends_agreement: bpy.props.BoolProperty(name='I agree with email notification', default=False, options={"HIDDEN"})
+    email_sends_agreement: bpy.props.BoolProperty(name='I agree with email notification', default=False,
+                                                  options={"HIDDEN"})
     login_or_logup: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     authenticated: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     register_code: bpy.props.StringProperty(name='Code', options={"HIDDEN"})
@@ -119,6 +122,7 @@ class KanistraProperties(bpy.types.PropertyGroup):
     admin_updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     admin_updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     admin_users: bpy.props.StringProperty(default='[]', options={"HIDDEN"})
+    admin_statistics: bpy.props.StringProperty(default='[]', options={"HIDDEN"})
 
 
 classes = [
@@ -144,6 +148,8 @@ classes = [
     admin.PushAdminOperator,
     admin.PullAdminOperator,
     admin.AdminIndexOperator,
+    admin.MarkWithTagOperator,
+    admin.TagsPanel,
 ]
 
 

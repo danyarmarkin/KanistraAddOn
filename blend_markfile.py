@@ -57,6 +57,16 @@ for obj in list(bpy.data.objects) + list(bpy.data.collections) + list(bpy.data.m
         for t in tags:
             obj.asset_data.tags.remove(t)
         obj.asset_data.tags.new(tag, skip_if_exists=True)
+    elif action == "manage":
+        tags = []
+        for t in obj.asset_data.tags:
+            if t.name == tag:
+                tags.append(t)
+        if len(tags) == 0:
+            obj.asset_data.tags.new(tag, skip_if_exists=True)
+        else:
+            for t in tags:
+                obj.asset_data.tags.remove(t)
 
 
 bpy.context.preferences.filepaths.save_version = 0

@@ -99,6 +99,14 @@ def download_from_source(cls, context, source: str, download_source: str, asset_
     if not admin:
         local_data["version_tags"].append(tag)
 
+    try:
+        if authenticated:
+            auth.post(context, f"{server_config.SERVER}/statistics/download/")
+        else:
+            requests.post(f"{server_config.SERVER}/statistics/download/")
+    except:
+        pass
+
     for file, (h, pk, _, is_free) in source_data.items():
         if not is_free and not authenticated:
             continue
@@ -124,6 +132,8 @@ def download_from_source(cls, context, source: str, download_source: str, asset_
                     f.close()
                     os.remove(f.name)
                     version_control.save_versions_data(context, local_data, admin)
+                    if admin:
+                        update_publish_tags(context, asset_lib_path)
                     return
                 cls.downloaded_size += len(data)
                 f.write(data)
@@ -131,9 +141,25 @@ def download_from_source(cls, context, source: str, download_source: str, asset_
         if tag != "" and not admin:
             mark_file_with_tag(context, file_path, tag, "add")
     version_control.save_versions_data(context, local_data, admin)
+    if admin:
+        update_publish_tags(context, asset_lib_path)
     for root, dirs, fls in os.walk(asset_lib_path):
         if len(dirs) + len(fls) == 0:
             os.remove(root)
+
+
+def update_publish_tags(context, asset_lib: str):
+    files_tags = get_files_and_tags(asset_lib)
+    publish_tags = set()
+    for _, tags in files_tags.items():
+        for t in tags:
+            if t.lower().startswith("published_at"):
+                publish_tags.add(t)
+    publish_tags = list(publish_tags)
+    publish_tags.sort()
+    data = version_control.load_versions_data(context, admin=True)
+    data["version_tags"] = publish_tags
+    version_control.save_versions_data(context, data, admin=True)
 
 
 def index_library_draft_files(cls, files):
@@ -242,7 +268,7 @@ def push_library(cls, context, push: bool, asset_lib: str):
             local_data['files'][name] = h
         else:
             h = local_data['files'][name]
-        local_files[h] = (filepath, name)
+        local_files[h] = (filepath, name, "free" in files_tags.get(filepath, []))
         cls.files_done += 1
 
     version_control.save_versions_data(context, local_data, admin=True)
@@ -256,6 +282,7 @@ def push_library(cls, context, push: bool, asset_lib: str):
     push_publish(cls, context, f"{server_config.SERVER}/admin-files/files/", local_files.copy())
 
     if not push:
+        auth.post(context, f"{server_config.SERVER}/statistics/data/", json={"tag": publish_tag})
         version_data = version_control.load_versions_data(context, True)
         version_data["version_tags"].append(publish_tag)
         version_control.save_versions_data(context, version_data, True)
@@ -276,10 +303,10 @@ def push_publish(cls, context, server, local_files):
     cls.total_files = len(local_files)
     cls.files_done = 0
 
-    for _, (fp, name) in local_files.items():
+    for _, (fp, name, free) in local_files.items():
         cls.current_file = fp.split(os.path.sep)[-1]
         with open(fp, "rb") as f:
             all_files = {'file': f}
-            data = {'name': name}
+            data = {'name': name, "is_free": free}
             auth.post(context, server, files=all_files, data=data)
         cls.files_done += 1

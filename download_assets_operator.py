@@ -126,5 +126,8 @@ def draw_operator(self, context):
                         icon_value=thumbnails.get_thumbnails()["arrow-down"].icon_id)
     elif props.updates < 0:
         layout.label(text='Updating...')
+    elif props.update_text != "" and not props.authenticated:
+        layout.alert = True
+        layout.label(text=props.update_text, icon_value=thumbnails.get_thumbnails()["lock"].icon_id)
     else:
         layout.label(text='Library is up to date')

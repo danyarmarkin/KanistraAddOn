@@ -5,7 +5,7 @@ import bpy
 import threading
 import requests
 import os
-from . import filehash, version_control, download_assets_operator, auth, admin, server_config
+from . import filehash, version_control, download_assets_operator, auth, admin, server_config, util
 
 
 def check_group_update(cls, context, source: str, admin: bool):
@@ -23,7 +23,7 @@ def check_group_update(cls, context, source: str, admin: bool):
 
     source_files = dict()
     for file in source_list_response.json():
-        source_files[file['hash']] = file['size']
+        source_files[file['hash']] = (file['size'], file['is_free'])
 
     local_data = version_control.load_versions_data(context, admin)
     for h in local_data['files'].values():
@@ -32,15 +32,24 @@ def check_group_update(cls, context, source: str, admin: bool):
 
     if admin:
         cls.admin_updates = len(source_files)
-        cls.admin_updates_size = sum(source_files.values())
+        cls.admin_updates_size = sum([i[0] for i in source_files.values()])
     else:
-        cls.updates = len(source_files)
-        cls.updates_size = sum(source_files.values())
+        free_files = {k: v for k, v in source_files.items() if v[1]}
+        if not authenticated:
+            cls.updates = len(free_files)
+            cls.updates_size = sum([i[0] for i in free_files.values()])
+            value = len(source_files) - len(free_files)
+            if value > 0:
+                props.update_text = f"Log in to unlock {value} more file{'s' if value > 1 else ''}"
+        else:
+            cls.updates = len(source_files)
+            cls.updates_size = sum([i[0] for i in source_files.values()])
 
 
 def check_updates(self, context):
     auth.check_admin(context)
     props = context.window_manager.kanistra_props
+    props.update_text = ""
 
     check_group_update(self, context, f"{server_config.SERVER}/blendfiles/", False)
     if props.admin:
@@ -49,8 +58,13 @@ def check_updates(self, context):
         users_data_response = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
         if users_data_response.status_code == 200:
             props.admin_users = str(json.dumps(users_data_response.json()))
+
+        statistics_data_response = auth.get(context, f"{server_config.SERVER}/statistics/data/")
+        if statistics_data_response.status_code == 200:
+            props.admin_statistics = str(json.dumps(statistics_data_response.json()))
     else:
         props.admin_users = '[]'
+        props.admin_statistics = '[]'
         self.admin_updates = 0
         self.admin_updates_size = 0
 
