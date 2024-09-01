@@ -8,48 +8,47 @@ import os
 from . import filehash, version_control, download_assets_operator, auth, admin, server_config
 
 
+def check_group_update(cls, context, source: str, admin: bool):
+    props = context.window_manager.kanistra_props
+    authenticated = props.authenticated
+    if not authenticated and admin or admin and not props.admin:
+        return
+
+    if authenticated:
+        source_list_response = auth.get(context, source)
+    else:
+        source_list_response = requests.get(source)
+    if source_list_response.status_code != 200:
+        return
+
+    source_files = dict()
+    for file in source_list_response.json():
+        source_files[file['hash']] = file['size']
+
+    local_data = version_control.load_versions_data(context, admin)
+    for h in local_data['files'].values():
+        if h in source_files.keys():
+            del source_files[h]
+
+    if admin:
+        cls.admin_updates = len(source_files)
+        cls.admin_updates_size = sum(source_files.values())
+    else:
+        cls.updates = len(source_files)
+        cls.updates_size = sum(source_files.values())
+
+
 def check_updates(self, context):
     auth.check_admin(context)
-
-    list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
-    if list_r.status_code != 200:
-        return
-    files = dict()
-
-    for file in list_r.json():
-        files[file['hash']] = file['size']
-
-    local_data = version_control.load_versions_data(context)
-    for h in local_data['files'].values():
-        if h in files.keys():
-            del files[h]
-
-    self.updates = len(files)
-    self.updates_size = sum(files.values())
-
     props = context.window_manager.kanistra_props
+
+    check_group_update(self, context, f"{server_config.SERVER}/blendfiles/", False)
     if props.admin:
-        list_r = auth.get(context, f"{server_config.SERVER}/admin-files/files/")
-        if list_r.status_code != 200:
-            return
-        files = dict()
+        check_group_update(self, context, f"{server_config.SERVER}/admin-files/files/", True)
 
-        for file in list_r.json():
-            files[file['hash']] = file['size']
-
-        path = admin.get_lib_path(context)
-        for root, dirs, fls in os.walk(path):
-            for file in fls:
-                filepath = os.path.join(root, file)
-                h = filehash.filehash(filepath)
-                if h in files.keys():
-                    del files[h]
-        self.admin_updates = len(files)
-        self.admin_updates_size = sum(files.values())
-
-        list_r = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
-        if list_r.status_code == 200:
-            props.admin_users = str(json.dumps(list_r.json()))
+        users_data_response = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
+        if users_data_response.status_code == 200:
+            props.admin_users = str(json.dumps(users_data_response.json()))
     else:
         props.admin_users = '[]'
         self.admin_updates = 0

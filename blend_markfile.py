@@ -21,12 +21,42 @@ for obj in list(bpy.data.objects) + list(bpy.data.collections) + list(bpy.data.m
         obj.asset_data.tags.remove(tag)
     elif action == "draft":
         flag = True
-        for tag in obj.asset_data.tags:
-            if str(tag).lower().startswith("published_at"):
+        for t in obj.asset_data.tags:
+            if str(t.name).lower().startswith("published_at"):
                 flag = False
                 break
         if flag:
             obj.asset_data.tags.new(tag, skip_if_exists=True)
+    elif action == "push":
+        tags = []
+        flag = True
+        for t in obj.asset_data.tags:
+            if str(t.name).lower().startswith("pulled_at") or str(t.name).lower().startswith("downloaded_at"):
+                tags.append(t)
+            if str(t.name).lower().startswith("published_at"):
+                flag = False
+        for t in tags:
+            obj.asset_data.tags.remove(t)
+        if flag:
+            obj.asset_data.tags.new(tag, skip_if_exists=True)
+    elif action == "publish":
+        tags = []
+        for t in obj.asset_data.tags:
+            tn = str(t.name).lower()
+            if tn.startswith("pulled_at") or tn.startswith("downloaded_at") or tn == "draft":
+                tags.append(t)
+        for t in tags:
+            obj.asset_data.tags.remove(t)
+        obj.asset_data.tags.new(tag, skip_if_exists=True)
+    elif action == "draft_to_publish":
+        tags = []
+        for t in obj.asset_data.tags:
+            tn = str(t.name).lower()
+            if tn == "draft":
+                tags.append(t)
+        for t in tags:
+            obj.asset_data.tags.remove(t)
+        obj.asset_data.tags.new(tag, skip_if_exists=True)
 
 
 bpy.context.preferences.filepaths.save_version = 0

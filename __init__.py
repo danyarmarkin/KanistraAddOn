@@ -143,6 +143,7 @@ classes = [
     admin.PublishAdminOperator,
     admin.PushAdminOperator,
     admin.PullAdminOperator,
+    admin.AdminIndexOperator,
 ]
 
 

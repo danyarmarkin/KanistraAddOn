@@ -76,19 +76,62 @@ class OpenAdminOperator(bpy.types.Operator):
 
 class PushAdminOperator(bpy.types.Operator):
     bl_idname = "kanistra.push_admin_operator"
-    bl_label = "Push"
+    bl_label = "Push/Publish"
+
+    current_file: str = ""
+    total_files: int = 1
+    files_done: int = 0
+    push_status = ""
+
+    thread: threading.Thread = None
+
+    publish: bpy.props.BoolProperty()
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
+    def modal(self, context, event):
+        if event.type == "TIMER":
+            if self.total_files > 0:
+                statusbar.update_progress(context,
+                                          progress=self.files_done / self.total_files * 100,
+                                          filename=self.current_file,
+                                          progress_text=f"{self.push_status}: ")
+            if not self.thread.is_alive():
+                self.thread.join()
+                try:
+                    bpy.ops.asset.library_refresh()
+                except RuntimeError:
+                    pass
+                statusbar.end_progress(context)
+                return {"FINISHED"}
+        return {"PASS_THROUGH"}
+
     def execute(self, context):
-        push_assets(self, context)
-        return {"FINISHED"}
+        if download_assets_operator.downloading_status(context) != 'NONE':
+            return {"FINISHED"}
+
+        # self.push_status = ""
+        asset_lib = get_lib_path(context)
+        self.thread = threading.Thread(target=util.push_library,
+                                       args=(self, context, not self.publish, asset_lib))
+        self.thread.start()
+
+        context.window_manager.event_timer_add(0.1, window=context.window)
+        context.window_manager.modal_handler_add(self)
+
+        return {"RUNNING_MODAL"}
 
 
 class PublishAdminOperator(bpy.types.Operator):
     bl_idname = "kanistra.publish_admin_operator"
     bl_label = "Publish"
+
+    current_file: str = ""
+    total_files: int = 1
+    files_done: int = 0
+
+    thread: threading.Thread = None
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
@@ -163,8 +206,12 @@ def draw_operators(self, context):
                                                               f"updates ({props.admin_updates_size // 1024 // 1024}"
                                                               f" Mb)",
                          icon_value=thumbnails.get_thumbnails()["arrow-down"].icon_id)
-        row.operator("kanistra.push_admin_operator", icon_value=thumbnails.get_thumbnails()["arrow-up"].icon_id)
-        row.operator("kanistra.publish_admin_operator", icon_value=thumbnails.get_thumbnails()["arrow-up-right"].icon_id)
+        row.operator("kanistra.push_admin_operator",
+                     text="Push",
+                     icon_value=thumbnails.get_thumbnails()["arrow-up"].icon_id).publish = False
+        row.operator("kanistra.push_admin_operator",
+                     text="Publish",
+                     icon_value=thumbnails.get_thumbnails()["arrow-up-right"].icon_id).publish = True
 
 
 def set_updates(context, u, us=0):
@@ -215,3 +262,47 @@ class UsersCountPanel(bpy.types.Panel):
 
         for user in default_users:
             col.label(text=f"{user['email']} {'(not active)' if not user['is_active'] else ''}")
+
+
+class AdminIndexOperator(bpy.types.Operator):
+    bl_idname = "kanistra.admin_index_operator"
+    bl_label = "Index library"
+
+    current_file: str = ""
+    total_files: int = 1
+    files_done: int = 0
+
+    thread: threading.Thread = None
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def modal(self, context, event):
+        if event.type == "TIMER":
+            if self.total_files > 0:
+                statusbar.update_progress(context, self.files_done / self.total_files * 100,
+                                          f"{self.current_file}", progress_text="Indexing: ")
+            if not self.thread.is_alive():
+                self.thread.join()
+                try:
+                    bpy.ops.asset.library_refresh()
+                except RuntimeError:
+                    pass
+                statusbar.end_progress(context)
+                return {"FINISHED"}
+        return {"PASS_THROUGH"}
+
+    def execute(self, context):
+        if download_assets_operator.downloading_status(context) != 'NONE':
+            return {"FINISHED"}
+
+        asset_lib = get_lib_path(context)
+
+        self.thread = threading.Thread(target=util.index_library_draft,
+                                       args=(self, context, asset_lib))
+        self.thread.start()
+
+        context.window_manager.event_timer_add(0.1, window=context.window)
+        context.window_manager.modal_handler_add(self)
+
+        return {"RUNNING_MODAL"}

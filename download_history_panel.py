@@ -27,6 +27,11 @@ class DownloadHistoryPanel(bpy.types.Panel):
         layout = self.layout
         box = layout.box()
         col = box.column(align=True)
+
+        if admin:
+            col.operator("kanistra.admin_index_operator")
+            col.separator()
+
         row = col.row()
         row.label(
             text="History:",
