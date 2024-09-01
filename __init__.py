@@ -2,7 +2,7 @@ bl_info = {
     "name": "Kanistra Client",
     "description": "Access to Kanistra Studio models library",
     "author": "Kanistra Studio",
-    "version": (0, 3, 7),
+    "version": (0, 4, 1),
     "blender": (4, 0, 0),
     "category": "Import-Export",
     "doc_url": "https://kanistra.com",
@@ -26,8 +26,10 @@ if "bpy" not in locals():
     from . import account
     from . import admin
     from . import timer
+    from . import handlers
 else:
     from importlib import reload
+
     reload(addon_updater_ops)
     reload(asset_browser_panel)
     reload(download_operator)
@@ -45,6 +47,7 @@ else:
     reload(account)
     reload(admin)
     reload(timer)
+    reload(handlers)
 
 import bpy
 from bpy.app.handlers import persistent
@@ -98,6 +101,7 @@ class KanistraProperties(bpy.types.PropertyGroup):
     updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     show_more_history: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
+    update_text: bpy.props.StringProperty(default='', options={"HIDDEN"})
 
     # log in / log up
     access_token: bpy.props.StringProperty(default='token', options={"HIDDEN"})
@@ -106,7 +110,8 @@ class KanistraProperties(bpy.types.PropertyGroup):
     password: bpy.props.StringProperty(name='Password', options={"HIDDEN"}, subtype="PASSWORD")
     password_again: bpy.props.StringProperty(name='Password again', options={"HIDDEN"}, subtype="PASSWORD")
     license_agreement: bpy.props.BoolProperty(name='I agree with addon policy', default=False, options={"HIDDEN"})
-    email_sends_agreement: bpy.props.BoolProperty(name='I agree with email notification', default=False, options={"HIDDEN"})
+    email_sends_agreement: bpy.props.BoolProperty(name='I agree with email notification', default=False,
+                                                  options={"HIDDEN"})
     login_or_logup: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     authenticated: bpy.props.BoolProperty(default=False, options={"HIDDEN"})
     register_code: bpy.props.StringProperty(name='Code', options={"HIDDEN"})
@@ -117,6 +122,7 @@ class KanistraProperties(bpy.types.PropertyGroup):
     admin_updates: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     admin_updates_size: bpy.props.IntProperty(default=0, options={"HIDDEN"})
     admin_users: bpy.props.StringProperty(default='[]', options={"HIDDEN"})
+    admin_statistics: bpy.props.StringProperty(default='[]', options={"HIDDEN"})
 
 
 classes = [
@@ -141,6 +147,10 @@ classes = [
     admin.PublishAdminOperator,
     admin.PushAdminOperator,
     admin.PullAdminOperator,
+    admin.AdminIndexOperator,
+    admin.MarkWithTagOperator,
+    admin.TagsPanel,
+    admin.StatisticsPanel,
 ]
 
 
@@ -163,9 +173,9 @@ def register():
     bpy.types.STATUSBAR_HT_header.prepend(statusbar.statusbar_ui)
 
     bpy.app.handlers.load_post.append(auth.load_auth_handler)
-    bpy.app.handlers.load_post.append(check_updates_operator.load_check_handler)
 
     timer.register_timers()
+    handlers.register_handlers()
 
     # bpy.app.timers.register(update_download_anim_index)
 
@@ -174,9 +184,9 @@ def unregister():
     addon_updater_ops.unregister()
     logger.log("unregister called")
 
+    handlers.unregister_handlers()
     timer.unregister_timers()
 
-    bpy.app.handlers.load_post.remove(check_updates_operator.load_check_handler)
     bpy.app.handlers.load_post.remove(auth.load_auth_handler)
 
     bpy.types.STATUSBAR_HT_header.remove(statusbar.statusbar_ui)

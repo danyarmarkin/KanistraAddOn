@@ -6,14 +6,13 @@ def statusbar_ui(self, context):
     props = context.window_manager.kanistra_props
     if props.progress:
         row = self.layout.row(align=True)
-        row.label(text='Downloading assets: ', icon_value=thumbnails.get_thumbnails()['kanistra'].icon_id)
-        row.label(text=props.progress)
+        row.label(text=props.progress, icon_value=thumbnails.get_thumbnails()['kanistra'].icon_id)
         row.operator("kanistra.cancel_download_kanistra_assets", text="", icon="CANCEL")
 
 
-def update_progress(context, progress, filename=None):
+def update_progress(context, progress, filename=None, progress_text="Downloading assets:"):
     props = context.window_manager.kanistra_props
-    props.progress = "{:.1f}%".format(progress)
+    props.progress = "{} {:.1f}%".format(progress_text, progress)
     context.workspace.status_text_set_internal(filename)
     for a in context.screen.areas:
         if a.type == "PROPERTIES":

@@ -12,12 +12,10 @@ class AssetBrowserPanel(bpy.types.Panel):
     @classmethod
     def poll(self, context):
         lib_ref = context.space_data.params.asset_library_reference
-        return lib_ref.lower() == "Kanistra Assets".lower()
+        props = context.window_manager.kanistra_props
+        return lib_ref.lower() in ["kanistra admin"] and props.admin
 
     def draw(self, context):
-        lib_ref = context.space_data.params.asset_library_reference
-        if lib_ref.lower() != "Kanistra Assets".lower():
-            return
         layout = self.layout
         row = layout.row()
         try:

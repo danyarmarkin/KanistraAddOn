@@ -2,13 +2,12 @@ import datetime
 import subprocess
 
 import bpy
-from . import thumbnails, statusbar, filehash, version_control, server_config
+from . import thumbnails, statusbar, filehash, version_control, server_config, util
 from pathlib import Path
 import requests
 import os
 import threading
 import time
-
 
 
 def get_asset_lib(context):
@@ -35,98 +34,6 @@ def downloading_status(context, status=None):
     if not status:
         return props.download_status
     props.download_status = status
-
-
-def download_assets(self, context, asset_lib, vc=True):
-    list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
-    if list_r.status_code != 200:
-        self.report(
-            {"ERROR"},
-            "Server didn't send response"
-        )
-        return
-    files = dict()
-
-    for file in list_r.json():
-        pk = file['id']
-        h = file['hash']
-        name = file['name']
-        size = file['size']
-        files[name] = (h, pk, size)
-
-    local_data = version_control.load_versions_data(context)
-    for file, h in local_data['files'].items():
-        file_path = os.path.join(asset_lib.path, file)
-        if file not in files.keys():
-            os.remove(file_path)
-            continue
-        if files[file][0] == h:
-            del files[file]
-
-    self.total_size = sum([i[2] for i in files.values()])
-    self.downloaded_size = 0
-    block_size = 1024 * 16  # 16 kB
-
-    if len(files) == 0:
-        self.report(
-            {"INFO"},
-            f"Library is up to date"
-        )
-
-    # Create tag
-    current_time = datetime.datetime.now()
-
-    def formated(n, c=2):
-        return "0" * max(0, c - len(str(n))) + str(n)
-
-    tag = (f"Downloaded_at_"
-           f"{formated(current_time.year, 4)}-"
-           f"{formated(current_time.month)}-"
-           f"{formated(current_time.day)}_"
-           f"{formated(current_time.hour)}:"
-           f"{formated(current_time.minute)}:"
-           f"{formated(current_time.second)}")
-    local_data["version_tags"].append(tag)
-
-    for file, (h, pk, _) in files.items():
-        file_r = requests.get(f"{server_config.SERVER}/download/{pk}/", stream=True)
-        file_path = os.path.join(asset_lib.path, file)
-        self.filename = file
-
-        if file_r.status_code != 200:
-            self.report(
-                {"ERROR"},
-                "Server doesn't send files"
-            )
-            return
-
-        with open(file_path, 'wb') as f:
-            for data in file_r.iter_content(block_size):
-                if downloading_status(context) != 'DOWNLOADING':
-                    f.close()
-                    os.remove(f.name)
-                    if vc:
-                        version_control.save_versions_data(context, data)
-                    return
-                self.downloaded_size += len(data)
-                f.write(data)
-
-        local_data['files'][file] = h
-        if vc:
-            mark_file_with_tag(context, file_path, tag)
-    if vc:
-        version_control.save_versions_data(context, local_data)
-
-
-def mark_file_with_tag(context, file, tag):
-    script_path = Path(__file__).parents[0] / "blend_markfile.py"
-    subprocess.call([
-            bpy.app.binary_path, "--background",
-            file, "--factory-startup",
-            "--python", script_path,
-            "--", file, tag
-        ]
-    )
 
 
 class DownloadKanistraAssetsOperator(bpy.types.Operator):
@@ -178,7 +85,10 @@ class DownloadKanistraAssetsOperator(bpy.types.Operator):
         if downloading_status(context) != 'NONE':
             return {"FINISHED"}
 
-        self.downloading_thread = threading.Thread(target=download_assets, args=(self, context, asset_lib))
+        self.downloading_thread = threading.Thread(target=util.download_from_source,
+                                                   args=(self, context, f"{server_config.SERVER}/blendfiles/",
+                                                         f"{server_config.SERVER}/download/", asset_lib.path,
+                                                         "Downloaded", False))
         self.downloading_thread.start()
         set_updates(context, -1)
 
@@ -213,8 +123,11 @@ def draw_operator(self, context):
         layout.operator("kanistra.download_kanistra_assets",
                         text=f"Download {props.updates} update{'' if props.updates == 1 else 's'}"
                              f" ({props.updates_size // (1024 * 1024)} Mb)",
-                        icon_value=thumbnails.get_thumbnails()["download-icon"].icon_id)
+                        icon_value=thumbnails.get_thumbnails()["arrow-down"].icon_id)
     elif props.updates < 0:
         layout.label(text='Updating...')
+    elif props.update_text != "" and not props.authenticated:
+        layout.alert = True
+        layout.label(text=props.update_text, icon_value=thumbnails.get_thumbnails()["lock"].icon_id)
     else:
         layout.label(text='Library is up to date')

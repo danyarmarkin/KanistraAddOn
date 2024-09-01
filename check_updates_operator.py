@@ -5,60 +5,66 @@ import bpy
 import threading
 import requests
 import os
-from . import filehash, version_control, download_assets_operator, auth, admin, server_config
-import time
+from . import filehash, version_control, download_assets_operator, auth, admin, server_config, util
+
+
+def check_group_update(cls, context, source: str, admin: bool):
+    props = context.window_manager.kanistra_props
+    authenticated = props.authenticated
+    if not authenticated and admin or admin and not props.admin:
+        return
+
+    if authenticated:
+        source_list_response = auth.get(context, source)
+    else:
+        source_list_response = requests.get(source)
+    if source_list_response.status_code != 200:
+        return
+
+    source_files = dict()
+    for file in source_list_response.json():
+        source_files[file['hash']] = (file['size'], file['is_free'])
+
+    local_data = version_control.load_versions_data(context, admin)
+    for h in local_data['files'].values():
+        if h in source_files.keys():
+            del source_files[h]
+
+    if admin:
+        cls.admin_updates = len(source_files)
+        cls.admin_updates_size = sum([i[0] for i in source_files.values()])
+    else:
+        free_files = {k: v for k, v in source_files.items() if v[1]}
+        if not authenticated:
+            cls.updates = len(free_files)
+            cls.updates_size = sum([i[0] for i in free_files.values()])
+            value = len(source_files) - len(free_files)
+            if value > 0:
+                props.update_text = f"Log in to unlock {value} more file{'s' if value > 1 else ''}"
+        else:
+            cls.updates = len(source_files)
+            cls.updates_size = sum([i[0] for i in source_files.values()])
 
 
 def check_updates(self, context):
-    if self.is_first_update:
-        time.sleep(2)
-        self.is_first_update = False
-    else:
-        time.sleep(30)
-
     auth.check_admin(context)
-
-    list_r = requests.get(f"{server_config.SERVER}/blendfiles/")
-    if list_r.status_code != 200:
-        return
-    files = dict()
-
-    for file in list_r.json():
-        files[file['hash']] = file['size']
-
-    local_data = version_control.load_versions_data(context)
-    for h in local_data['files'].values():
-        if h in files.keys():
-            del files[h]
-
-    self.updates = len(files)
-    self.updates_size = sum(files.values())
-
     props = context.window_manager.kanistra_props
+    props.update_text = ""
+
+    check_group_update(self, context, f"{server_config.SERVER}/blendfiles/", False)
     if props.admin:
-        list_r = auth.get(context, f"{server_config.SERVER}/admin-files/files/")
-        if list_r.status_code != 200:
-            return
-        files = dict()
+        check_group_update(self, context, f"{server_config.SERVER}/admin-files/files/", True)
 
-        for file in list_r.json():
-            files[file['hash']] = file['size']
+        users_data_response = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
+        if users_data_response.status_code == 200:
+            props.admin_users = str(json.dumps(users_data_response.json()))
 
-        path = admin.get_lib_path(context)
-        for root, dirs, fls in os.walk(path):
-            for file in fls:
-                filepath = os.path.join(root, file)
-                h = filehash.filehash(filepath)
-                if h in files.keys():
-                    del files[h]
-        self.admin_updates = len(files)
-        self.admin_updates_size = sum(files.values())
-
-        list_r = auth.get(context, f"{server_config.SERVER}/admin-data/users/")
-        if list_r.status_code == 200:
-            props.admin_users = str(json.dumps(list_r.json()))
+        statistics_data_response = auth.get(context, f"{server_config.SERVER}/statistics/data/")
+        if statistics_data_response.status_code == 200:
+            props.admin_statistics = str(json.dumps(statistics_data_response.json()))
     else:
         props.admin_users = '[]'
+        props.admin_statistics = '[]'
         self.admin_updates = 0
         self.admin_updates_size = 0
 
@@ -75,7 +81,7 @@ class CheckUpdatesOperator(bpy.types.Operator):
     updating = False
 
     _timer = None
-    _interval = 10
+    _interval = 3
 
     updates = 0
     updates_size = 0
@@ -94,19 +100,15 @@ class CheckUpdatesOperator(bpy.types.Operator):
                 self.updates_size = 0
                 self.admin_updates = 0
                 self.admin_updates_size = 0
-                return {'PASS_THROUGH'}
+                return {'FINISHED'}
             if not self.check_thread.is_alive():
                 self.check_thread.join()
                 download_assets_operator.set_updates(context, self.updates, self.updates_size)
                 admin.set_updates(context, self.admin_updates, self.admin_updates_size)
-                run_check(self, context)
-        return {'PASS_THROUGH'}
+                return {'FINISHED'}
+        return {"PASS_THROUGH"}
 
     def execute(self, context):
-        # if CheckUpdatesOperator.updating:
-        #     return {"FINISHED"}
-        #
-        # CheckUpdatesOperator.updating = True
         run_check(self, context)
         wm = context.window_manager
         self._timer = wm.event_timer_add(self._interval, window=context.window)
@@ -116,11 +118,3 @@ class CheckUpdatesOperator(bpy.types.Operator):
     def cancel(self, context):
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
-
-
-from bpy.app.handlers import persistent
-
-
-@persistent
-def load_check_handler(dummy):
-    bpy.ops.kanistra.check_updates_operator()

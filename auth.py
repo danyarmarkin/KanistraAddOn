@@ -99,7 +99,8 @@ def check_admin(context):
 
 def authenticate(context):
     props = context.window_manager.kanistra_props
-    r = requests.post(f"{server_config.SERVER}/api/token/", json={"username": props.login, "password": props.password})
+    r = requests.post(f"{server_config.SERVER}/api/token/",
+                      json={"username": props.login, "password": props.password})
     if r.status_code == 200:
         props.authenticated = True
         props.access_token = r.json()["access"]
@@ -117,7 +118,8 @@ def authenticate(context):
 
 def refresh(context):
     props = context.window_manager.kanistra_props
-    r = requests.post(f"{server_config.SERVER}/api/token/refresh/", json={"refresh": props.refresh_token})
+    r = requests.post(f"{server_config.SERVER}/api/token/refresh/",
+                      json={"refresh": props.refresh_token})
     if r.status_code == 401:
         props.authenticated = False
         props.admin = False

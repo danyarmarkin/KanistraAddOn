@@ -5,8 +5,12 @@ from . import addon_updater_ops
 
 def on_startup_timer():
     addon_updater_ops.check_for_update_background()
-
     return None
+
+
+def check_updates_timer():
+    bpy.ops.kanistra.check_updates_operator()
+    return 30
 
 
 def show_update_popup_timer():
@@ -16,7 +20,8 @@ def show_update_popup_timer():
 
 timers = [
     (on_startup_timer, {"first_interval": 0}),
-    (show_update_popup_timer, {"first_interval": 3})
+    (show_update_popup_timer, {"first_interval": 3}),
+    (check_updates_timer, {"first_interval": 3}),
 ]
 
 
