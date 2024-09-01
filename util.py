@@ -268,7 +268,7 @@ def push_library(cls, context, push: bool, asset_lib: str):
             local_data['files'][name] = h
         else:
             h = local_data['files'][name]
-        local_files[h] = (filepath, name, "free" in files_tags.get(filepath, []))
+        local_files[h] = (filepath, name, "free" in files_tags.get(filepath, []) or filepath.endswith(".txt"))
         cls.files_done += 1
 
     version_control.save_versions_data(context, local_data, admin=True)
