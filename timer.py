@@ -10,7 +10,7 @@ def on_startup_timer():
 
 def check_updates_timer():
     bpy.ops.kanistra.check_updates_operator()
-    return 10
+    return 30
 
 
 def show_update_popup_timer():
