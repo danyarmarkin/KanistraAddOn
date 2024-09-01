@@ -1,5 +1,6 @@
 import os
 import threading
+from datetime import datetime
 from pathlib import Path
 
 import bpy
@@ -348,3 +349,38 @@ class TagsPanel(bpy.types.Panel):
         col = layout.column()
         col.operator("kanistra.mark_with_tag_operator", text="Free").tag = "free"
         col.operator("kanistra.mark_with_tag_operator", text="Draft").tag = "draft"
+
+
+class StatisticsPanel(bpy.types.Panel):
+    bl_idname = "kanistra.admin_statistics_panel"
+    bl_label = "Statistics"
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOLS'
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(self, context):
+        props = context.window_manager.kanistra_props
+        lib_ref = getattr(context.space_data.params, "asset_library_ref", None)
+        lib_ref = getattr(context.space_data.params, "asset_library_reference", lib_ref)
+        return context.area.ui_type == "ASSETS" and lib_ref.lower() in ["kanistra admin"] and props.admin
+
+    def draw(self, context):
+        props = context.window_manager.kanistra_props
+        stats = json.loads(props.admin_statistics)
+        layout = self.layout
+        column = layout.column()
+
+        def format_datetime(datetime_str):
+            dt_obj = datetime.fromisoformat(datetime_str)
+            return dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+
+        stats.sort(key=lambda x: x["tag"], reverse=True)
+        for entry in stats:
+            box = column.box()
+            col = box.column()
+
+            col.label(text=entry['tag'])
+            col.label(text=f"Anon users: {entry['anon_counter']}")
+            col.label(text=f"Auth users: {entry['auth_counter']}")
+            col.label(text=f"Last Download: {format_datetime(entry['last_download'])}")

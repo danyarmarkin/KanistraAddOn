@@ -150,6 +150,7 @@ classes = [
     admin.AdminIndexOperator,
     admin.MarkWithTagOperator,
     admin.TagsPanel,
+    admin.StatisticsPanel,
 ]
 
 
