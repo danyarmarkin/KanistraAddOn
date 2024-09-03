@@ -1,12 +1,12 @@
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import bpy
 import json
 
-from . import auth, server_config, download_assets_operator, statusbar, filehash, util, thumbnails
+from . import auth, server_config, download_assets_operator, statusbar, filehash, util, thumbnails, version_control
 
 
 def get_lib_path(context):
@@ -370,17 +370,19 @@ class StatisticsPanel(bpy.types.Panel):
         stats = json.loads(props.admin_statistics)
         layout = self.layout
         column = layout.column()
+        data = set(version_control.load_versions_data(context, admin=True)["version_tags"])
 
         def format_datetime(datetime_str):
             dt_obj = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
+            dt_obj = dt_obj.replace(tzinfo=timezone.utc).astimezone(tz=None)
             return dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
         stats.sort(key=lambda x: x["tag"], reverse=True)
         for entry in stats:
+            # if entry['tag'] not in data:
+            #     continue
             box = column.box()
             col = box.column()
-
             col.label(text=entry['tag'])
-            col.label(text=f"Anon users: {entry['anon_counter']}")
-            col.label(text=f"Auth users: {entry['auth_counter']}")
+            col.label(text=f"Downloads Anon+Auth: {entry['anon_counter']}+{entry['auth_counter']}")
             col.label(text=f"Last Download: {format_datetime(entry['last_download'])}")

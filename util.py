@@ -150,6 +150,10 @@ def download_from_source(cls, context, source: str, download_source: str, asset_
 
 def update_publish_tags(context, asset_lib: str):
     files_tags = get_files_and_tags(asset_lib)
+    update_publish_tags_files(context, files_tags)
+
+
+def update_publish_tags_files(context, files_tags):
     publish_tags = set()
     for _, tags in files_tags.items():
         for t in tags:
@@ -172,9 +176,12 @@ def index_library_draft_files(cls, files):
 
 
 def index_library_draft(cls, context, asset_lib):
-    files = get_files_list_by_tag(asset_lib,
-                                  lambda tags: "draft" not in tags and
-                                               not any([t.lower().startswith("published_at") for t in tags]))
+    files_tags = get_files_and_tags(asset_lib)
+    update_publish_tags_files(context, files_tags)
+    files = []
+    for file, tags in files_tags.items():
+        if "draft" not in tags and not any([t.lower().startswith("published_at") for t in tags]):
+            files.append(file)
     index_library_draft_files(cls, files)
 
 
@@ -278,14 +285,15 @@ def push_library(cls, context, push: bool, asset_lib: str):
     if not push:
         cls.push_status = "Publishing"
         push_publish(cls, context, f"{server_config.SERVER}/blendfiles/", local_files.copy())
-    cls.push_status = "Pushing"
-    push_publish(cls, context, f"{server_config.SERVER}/admin-files/files/", local_files.copy())
 
-    if not push:
+    if not push and cls.total_files > 0:
         auth.post(context, f"{server_config.SERVER}/statistics/data/", json={"tag": publish_tag})
         version_data = version_control.load_versions_data(context, True)
         version_data["version_tags"].append(publish_tag)
         version_control.save_versions_data(context, version_data, True)
+
+    cls.push_status = "Pushing"
+    push_publish(cls, context, f"{server_config.SERVER}/admin-files/files/", local_files.copy())
 
 
 def push_publish(cls, context, server, local_files):

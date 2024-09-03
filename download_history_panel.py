@@ -33,6 +33,18 @@ class DownloadHistoryPanel(bpy.types.Panel):
         if admin:
             col.operator("kanistra.admin_index_operator")
             col.separator()
+            col.alert = True
+            col.operator(
+                "kanistra.search_tag_operator",
+                text="Draft →").tag = "draft"
+            col.alert = False
+            col.operator(
+                "kanistra.search_tag_operator",
+                text="Free →").tag = "free"
+            # col.operator(
+            #     "kanistra.search_tag_operator",
+            #     text="To publish →").tag = "to_publish"
+            col.separator()
 
         row = col.row()
         row.label(
@@ -48,19 +60,6 @@ class DownloadHistoryPanel(bpy.types.Panel):
                                              context.window_manager.kanistra_props.show_more_history)\
             else list(reversed(data))
 
-        if admin:
-            row = col.row(align=True)
-            row.alignment = "RIGHT"
-            c = row.column()
-            c.alert = True
-            c.operator(
-                "kanistra.search_tag_operator",
-                text="Draft →").tag = "draft"
-            c.alert = False
-            c.operator(
-                "kanistra.search_tag_operator",
-                text="Free →").tag = "free"
-            col.separator()
         is_first = True
         for tag in tags:
             row = col.row(align=True)
